@@ -1,0 +1,118 @@
+body {
+
+    height: 98vh;
+    width: 205vh;
+    background: linear-gradient(#f9f9fa, #58255a);
+    border-radius: 5px;
+}
+
+
+.h1 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+}
+
+h1 {
+    text-align: center;
+    width: 400px;
+    background-color: rgb(45, 46, 46);
+    color: white;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-weight: bold;
+    font-size: 36px;
+    text-shadow: 5px 5px 5px black;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.input {
+    margin-left: 20px;
+    margin-bottom: 20px;
+}
+
+
+.flex-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 50px;
+}
+
+
+
+
+.flex-container1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    height: 90px;
+    background-color: #a596a7;
+    border: 2px solid black;
+    border-radius: 10px;
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+
+video {
+    width: 420px;
+    margin: 5px;
+    border: 5px solid black;
+}
+
+
+
+
+button {
+    margin: 5px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    /*transition: background 0.3s ease, transform 0.2s ease;*/
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    box-shadow: 5px 5px 5px black
+}
+
+button:hover {
+    transform: scale(1.05);
+}
+
+#startCallBtn {
+    background: linear-gradient(45deg, #28a745, #218838);
+}
+
+#shareScreenBtn {
+    background: linear-gradient(45deg, #007bff, #0069d9);
+}
+
+#startRecBtn {
+    background: linear-gradient(45deg, #dc3545, #c82333);
+}
+
+#stopRecBtn {
+    background: linear-gradient(45deg, #343a40, #23272b);
+}
+
+#joinRoomBtn {
+    background: linear-gradient(45deg, #6f42c1, #5a32a3);
+}
+
+input#roomInput {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    box-shadow: 5px 5px 5px black;
+}
+
+

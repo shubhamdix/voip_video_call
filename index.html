@@ -1,0 +1,223 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoIP Video Call</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div class="h1"><h1>VoIP Video Call</h1></div>
+   
+
+
+<div class="input">
+    <input type="text" id="roomInput" placeholder="Enter Room ID" />
+    <button id="joinRoomBtn" onclick="joinRoom()">🔗 Join Room</button>
+</div>
+    
+
+    
+<div class="flex-container">
+    <video id="localVideo" autoplay playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+</div>
+    
+    <br>
+<div class='flex-container1'>
+    <button id="startCallBtn" onclick="startCall()">📞 Start Call</button>
+    <button id="shareScreenBtn" onclick="shareScreen()">🖥️ Share YouTube Screen</button>
+    <button id="startRecBtn" onclick="startRecording()">⏺️ Start Recording</button>
+    <button id="stopRecBtn" onclick="stopRecording()">⏹️ Stop Recording</button>
+</div>
+
+
+
+
+    <canvas id="recordCanvas" width="640" height="480" style="display:none;"></canvas>
+
+    <script>
+        const localVideo = document.getElementById("localVideo");
+        const remoteVideo = document.getElementById("remoteVideo");
+        let localStream;
+        let peerConnection;
+        let mediaRecorder;
+        let recordedChunks = [];
+
+        const socket = new WebSocket("ws://localhost:3000");
+
+
+        function joinRoom() {
+                const roomId = document.getElementById("roomInput").value;
+                if (!roomId) return alert("Enter a room ID");
+
+                socket.send(JSON.stringify({ type: "join", room: roomId }));
+                console.log("Joined room:", roomId);
+                alert(`✅ Joined room: ${roomId}`);
+            }
+
+
+
+
+        const iceServers = [
+            { urls: "stun:stun.l.google.com:19302" },
+            {
+                urls: "turn:TURN_SERVER_IP:3478", // Replace with real TURN server
+                username: "yourUsername",
+                credential: "yourPassword"
+            }
+        ];
+
+        function createPeerConnection() {
+            const pc = new RTCPeerConnection({ iceServers });
+
+            pc.ontrack = event => {
+                remoteVideo.srcObject = event.streams[0];
+            };
+
+            pc.onicecandidate = event => {
+                if (event.candidate) {
+                    socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
+                }
+            };
+
+            return pc;
+        }
+
+        async function startCall() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideo.srcObject = localStream;
+
+                peerConnection = createPeerConnection();
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.send(JSON.stringify({ type: "offer", offer }));
+            } catch (err) {
+                console.error("Error starting call:", err);
+            }
+        }
+
+        socket.onmessage = async (message) => {
+            const data = JSON.parse(message.data);
+
+            switch (data.type) {
+                case "offer":
+                    peerConnection = createPeerConnection();
+
+                    await navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+                        localStream = stream;
+                        localVideo.srcObject = stream;
+                        stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+                    });
+
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    socket.send(JSON.stringify({ type: "answer", answer }));
+                    break;
+
+                case "answer":
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    break;
+
+                case "candidate":
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    break;
+            }
+        };
+
+        async function shareScreen() {
+            try {
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const screenTrack = screenStream.getVideoTracks()[0];
+                const sender = peerConnection.getSenders().find(s => s.track.kind === "video");
+                if (sender) {
+                    await sender.replaceTrack(screenTrack);
+                }
+
+                localVideo.srcObject = screenStream;
+
+                // Optionally revert to camera after sharing
+                screenTrack.onended = async () => {
+                    const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    const camTrack = camStream.getVideoTracks()[0];
+                    localVideo.srcObject = camStream;
+                    const sender = peerConnection.getSenders().find(s => s.track.kind === "video");
+                    if (sender) {
+                        await sender.replaceTrack(camTrack);
+                    }
+                };
+            } catch (err) {
+                console.error("Screen sharing failed:", err);
+            }
+        }
+
+       
+
+            function startRecording() {
+                    const canvas = document.getElementById("recordCanvas");
+                    const ctx = canvas.getContext("2d");
+
+                    function drawFrame() {
+                        if (localVideo.readyState === 4 && remoteVideo.readyState === 4) {
+                            ctx.drawImage(remoteVideo, 0, 0, 320, 240);
+                            ctx.drawImage(localVideo, 320, 0, 320, 240);
+                        }
+                        requestAnimationFrame(drawFrame);
+                    }
+
+                    drawFrame();
+
+                    const canvasStream = canvas.captureStream(30);
+                    mediaRecorder = new MediaRecorder(canvasStream);
+                    recordedChunks = [];
+
+                    mediaRecorder.ondataavailable = event => recordedChunks.push(event.data);
+                    mediaRecorder.start();
+
+                    alert("🔴 Recording started");
+                }
+
+
+
+
+
+
+        
+
+
+        function stopRecording() {
+                mediaRecorder.stop();
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: "video/webm" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "recording.webm";
+                    document.body.appendChild(a);
+                    a.click();
+
+                    alert("✅ Recording stopped and downloaded");
+                    recordedChunks = [];
+                };
+            }
+
+    </script>
+
+    
+</body>
+
+</html>
+
+
+
